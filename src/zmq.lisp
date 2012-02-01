@@ -377,7 +377,7 @@ ITEMS."
   "For each poll item in ITEMS, evaluate BODY in an environment where VAR is
   bound to the poll item."
   (let ((i (gensym)))
-    `(do ((,i 0))
+    `(do ((,i 0 (1+ ,i)))
          ((= ,i ,nb-items))
        (let ((,var (poll-items-aref ,items ,i)))
          ,@body))))
