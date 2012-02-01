@@ -388,7 +388,7 @@ ITEMS."
   (/= (logand (foreign-slot-value poll-item 'pollitem 'revents)
               (foreign-bitfield-value 'event-types events)) 0))
 
-(defun poll-item-sock (poll-item)
+(defun poll-item-socket (poll-item)
   "Return the `socket' of the given `poll-item'"
   (foreign-slot-value poll-item 'pollitem 'socket))
 
