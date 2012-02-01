@@ -388,6 +388,10 @@ ITEMS."
   (/= (logand (foreign-slot-value poll-item 'pollitem 'revents)
               (foreign-bitfield-value 'event-types events)) 0))
 
+(defun poll-item-socket (poll-item)
+  "Return the `socket' of the given `poll-item'"
+  (foreign-slot-value poll-item 'pollitem 'socket))
+
 (defun poll (items nb-items timeout)
   "Poll ITEMS with a timeout of TIMEOUT microseconds, -1 meaning no time
   limit. Return the number of items with signaled events."

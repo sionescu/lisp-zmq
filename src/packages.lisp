@@ -19,6 +19,7 @@
 
            :send :recv
            :with-poll-items
+           :poll-item-socket
            :poll-items-aref :do-poll-items :poll-item-events-signaled-p
            :poll
 
