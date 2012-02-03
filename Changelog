@@ -1,4 +1,12 @@
 
+Version 1.2.0 (2012-02-03)
+
+- Fix DO-POLL-ITEMS to avoid infinite loop (thanks to Yaroslav Shirokov).
+- Add POLL-ITEM-SOCKET to get the socket of a poll item (thanks to Yaroslav
+  Shirokov).
+- Fix a few docstrings.
+
+
 Version 1.1.0 (2011-11-22)
 
 - Make poll item testing easier (thanks to Eric Sessoms).
