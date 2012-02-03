@@ -202,7 +202,7 @@ context CONTEXT with type TYPE."
   (call-ffi 0 '%device (foreign-enum-value 'device-type type) frontend backend))
 
 (defun msg-init-fill (message data &key (encoding *default-foreign-encoding*))
-  "Initialize fill and return a message. If DATA is a string, convert it to a
+  "Initialize, fill and return a message. If DATA is a string, convert it to a
 byte array."
   (etypecase data
     (string
@@ -327,7 +327,7 @@ the call, SOURCE is an empty message."
   (call-ffi -1 '%msg-move destination source))
 
 (defun send (socket message &optional flags)
-  "Queue MESSAGE to be on SOCKET."
+  "Queue MESSAGE to be sent on SOCKET."
   (call-ffi -1 '%send socket message
             (foreign-bitfield-value 'send-options flags)))
 
@@ -337,12 +337,12 @@ the call, SOURCE is an empty message."
             (foreign-bitfield-value 'recv-options flags)))
 
 (defmacro with-poll-items ((items-var size-var) items &body body)
-  "Evaluate BODY in an environment where ITEMS-VAR is bound to a foreign
-  array of poll items, and SIZE-VAR is bound to the number of polled
-  items. Poll items are filled according to ITEMS. ITEMS is a list where each
-  element describe a poll item. Each description is a list where the first
-  element is a socket or file descriptor, and other elements are the events to
-  watch for, :POLLIN, :POLLOUT or :POLLERR."
+  "Evaluate BODY in an environment where ITEMS-VAR is bound to a foreign array
+  of poll items, and SIZE-VAR is bound to the number of polled items. Poll
+  items are filled according to ITEMS. ITEMS is a list where each element
+  describe a poll item. Each description is a list where the first element is
+  a socket or file descriptor, and other elements are the events to watch
+  for, :POLLIN, :POLLOUT or :POLLERR."
   (let ((i 0)
         (pollitem-size (foreign-type-size 'pollitem)))
     `(with-foreign-object (,items-var 'pollitem ,(length items))
@@ -389,7 +389,7 @@ ITEMS."
               (foreign-bitfield-value 'event-types events)) 0))
 
 (defun poll-item-socket (poll-item)
-  "Return the `socket' of the given `poll-item'"
+  "Return the SOCKET of the poll item POLL-ITEM."
   (foreign-slot-value poll-item 'pollitem 'socket))
 
 (defun poll (items nb-items timeout)
