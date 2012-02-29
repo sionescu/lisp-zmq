@@ -5,9 +5,9 @@
 `lisp-zmq` is a Common Lisp binding for the [zeromq](http://zeromq.org)
 messaging library.
 
-More informations can be found on <http://codemore.org/lisp-zmq.html>.
+More information can be found on <http://wandrian.net/lisp-zmq.html>.
 
 ## Contact
 
-If you have suggestions, or if you found a bug, send me a message via Github
+If you have suggestions, or if you have found a bug, send me a message via Github
 or mail me at <khaelin@gmail.com>.
