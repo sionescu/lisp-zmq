@@ -1,4 +1,10 @@
 
+Version 1.3.0 (2012-03-01)
+
+- Make socket optionally thread-safe.
+- Add POLL-ITEM-FD.
+
+
 Version 1.2.0 (2012-02-03)
 
 - Fix DO-POLL-ITEMS to avoid infinite loop (thanks to Yaroslav Shirokov).
