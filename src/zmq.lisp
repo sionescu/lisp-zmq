@@ -94,19 +94,48 @@ with IO-THREADS threads."
           (progn ,@body)
        (term ,var))))
 
-(defun socket (context type)
-  "Create and return a new socket."
-  (call-ffi (null-pointer)
-            '%socket context (foreign-enum-value 'socket-type type)))
+(defclass socket ()
+  ((%socket
+    :accessor socket-%socket
+    :initarg :%socket
+    :documentation "A foreign pointer to the underlying zeromq socket.")
+   (lock
+    :accessor socket-lock
+    :initarg :lock
+    :initform nil
+    :documentation "A lock used for thread-safe sockets, or NIL if the socket
+    isn't thread-safe."))
+  (:documentation "A zeromq socket."))
+
+(defun socket (context type &key thread-safe)
+  "Create and return a new socket. If THREAD-SAFE is not NIL, the socket will
+be protected against concurrent access."
+  (make-instance 'socket
+                 :%socket (call-ffi (null-pointer)
+                                    '%socket context
+                                    (foreign-enum-value 'socket-type type))
+                 :lock (when thread-safe
+                         (bordeaux-threads:make-recursive-lock))))
+
+(defmacro with-socket-locked ((socket) &body body)
+  "Evaluate BODY in an environment where SOCKET is protected against
+  concurrent access."
+  `(if (socket-lock socket)
+       (bordeaux-threads:with-recursive-lock-held ((socket-lock ,socket))
+         ,@body)
+       (progn
+         ,@body)))
 
 (defun close (socket)
   "Close and release a socket."
-  (call-ffi -1 '%close socket))
+  (with-socket-locked (socket)
+    (call-ffi -1 '%close (socket-%socket socket))))
 
-(defmacro with-socket ((var context type) &body body)
+(defmacro with-socket ((var context type &key thread-safe) &body body)
   "Evaluate BODY in an environment where VAR is bound to a socket created in
-context CONTEXT with type TYPE."
-  `(let ((,var (socket ,context ,type)))
+context CONTEXT with type TYPE. Key arguments are the same as the arguments of
+SOCKET."
+  `(let ((,var (socket ,context ,type :thread-safe ,thread-safe)))
      (unwind-protect
           (progn ,@body)
        (close ,var))))
@@ -121,12 +150,14 @@ context CONTEXT with type TYPE."
 (defun bind (socket endpoint)
   "Bind SOCKET to the address ENDPOINT."
   (with-foreign-string (%endpoint endpoint)
-    (call-ffi -1 '%bind socket %endpoint)))
+    (with-socket-locked (socket)
+      (call-ffi -1 '%bind (socket-%socket socket) %endpoint))))
 
 (defun connect (socket endpoint)
   "Connect SOCKET to the address ENDPOINT."
   (with-foreign-string (%endpoint endpoint)
-    (call-ffi -1 '%connect socket %endpoint)))
+    (with-socket-locked (socket)
+      (call-ffi -1 '%connect (socket-%socket socket) %endpoint))))
 
 (defvar *socket-options-type* (make-hash-table)
   "A table to store the foreign type of each socket option.")
@@ -165,7 +196,8 @@ context CONTEXT with type TYPE."
       (error "Unknown socket option ~A." option))
     (destructuring-bind (type length) info
       (with-foreign-objects ((%value type length) (%size 'size-t))
-        (call-ffi -1 '%getsockopt socket option %value %size)
+        (with-socket-locked (socket)
+          (call-ffi -1 '%getsockopt (socket-%socket socket) option %value %size))
         (case option
           (:identity
            (let ((size (mem-ref %size 'size-t)))
@@ -187,14 +219,18 @@ context CONTEXT with type TYPE."
          (let ((length (length value)))
            (with-foreign-object (%value :char (+ length 1))
              (lisp-string-to-foreign value %value (+ length 1))
-             (call-ffi -1 '%setsockopt socket option %value length))))
+             (with-socket-locked (socket)
+               (call-ffi -1 '%setsockopt (socket-%socket socket) option
+                         %value length)))))
         (t
          (with-foreign-object (%value type length)
            (setf (mem-ref %value type) (case option
                                          (:events (foreign-bitfield-value
                                                    'event-types value))
                                          (t value)))
-           (call-ffi -1 '%setsockopt socket option %value length)))))))
+           (with-socket-locked (socket)
+             (call-ffi -1 '%setsockopt (socket-%socket socket) option
+                       %value length))))))))
 
 (defun device (type frontend backend)
   "Connect a frontend socket to a backend socket. This function always returns
@@ -328,20 +364,23 @@ the call, SOURCE is an empty message."
 
 (defun send (socket message &optional flags)
   "Queue MESSAGE to be sent on SOCKET."
-  (call-ffi -1 '%send socket message
-            (foreign-bitfield-value 'send-options flags)))
+  (with-socket-locked (socket)
+    (call-ffi -1 '%send (socket-%socket socket) message
+              (foreign-bitfield-value 'send-options flags))))
 
 (defun recv (socket message &optional flags)
   "Receive a message from SOCKET and store it in MESSAGE."
-  (call-ffi -1 '%recv socket message
-            (foreign-bitfield-value 'recv-options flags)))
+  (with-socket-locked (socket)
+    (call-ffi -1 '%recv (socket-%socket socket) message
+              (foreign-bitfield-value 'recv-options flags))))
 
 (defmacro with-poll-items ((items-var size-var) items &body body)
   "Evaluate BODY in an environment where ITEMS-VAR is bound to a foreign array
   of poll items, and SIZE-VAR is bound to the number of polled items. Poll
   items are filled according to ITEMS. ITEMS is a list where each element
   describe a poll item. Each description is a list where the first element is
-  a socket or file descriptor, and other elements are the events to watch
+  a socket instance, a foreign pointer to a zeromq socket, or a file
+  descriptor, and other elements are the events to watch
   for, :POLLIN, :POLLOUT or :POLLERR."
   (let ((i 0)
         (pollitem-size (foreign-type-size 'pollitem)))
@@ -355,6 +394,8 @@ the call, SOURCE is an empty message."
                           (destructuring-bind (handle &rest event-list)
                               (list ,@item)
                             (cond
+                              ((typep handle 'socket)
+                               (setf socket (socket-%socket handle)))
                               ((pointerp handle)
                                (setf socket handle))
                               (t
@@ -389,8 +430,12 @@ ITEMS."
               (foreign-bitfield-value 'event-types events)) 0))
 
 (defun poll-item-socket (poll-item)
-  "Return the SOCKET of the poll item POLL-ITEM."
+  "Return a foreign pointer to the zeromq socket of the poll item POLL-ITEM."
   (foreign-slot-value poll-item 'pollitem 'socket))
+
+(defun poll-item-fd (poll-item)
+  "Return the file descriptor of the poll item POLL-ITEM."
+  (foreign-slot-value poll-item 'pollitem 'fd))
 
 (defun poll (items nb-items timeout)
   "Poll ITEMS with a timeout of TIMEOUT microseconds, -1 meaning no time

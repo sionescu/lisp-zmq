@@ -5,6 +5,8 @@
 
            :init :term :with-context
 
+           :socket-%socket :socket-lock :with-socket-locked
+
            :socket :close :with-socket :with-sockets
            :bind :connect
 
@@ -19,7 +21,7 @@
 
            :send :recv
            :with-poll-items
-           :poll-item-socket
+           :poll-item-socket :poll-item-fd
            :poll-items-aref :do-poll-items :poll-item-events-signaled-p
            :poll
 
