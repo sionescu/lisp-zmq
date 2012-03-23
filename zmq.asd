@@ -4,7 +4,7 @@
 
 (defsystem zmq
   :name "zmq"
-  :version "1.3.0"
+  :version "1.3.1"
   :author "Nicolas Martyanoff"
   :license "BSD"
   :description "A binding of the zmq transport layer."
