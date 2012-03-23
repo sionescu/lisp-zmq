@@ -197,6 +197,7 @@ SOCKET."
     (destructuring-bind (type length) info
       (with-foreign-objects ((%value type length) (%size 'size-t))
         (with-socket-locked (socket)
+          (setf (mem-ref %size 'size-t) length)
           (call-ffi -1 '%getsockopt (socket-%socket socket) option %value %size))
         (case option
           (:identity
