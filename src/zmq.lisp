@@ -63,7 +63,8 @@ function is returned."
        (if (eq value invalid-value)
            (let* ((error-code (%errno))
                   (description (%strerror error-code))
-                  (keyword (foreign-enum-keyword 'error-code error-code :errorp nil))
+                  (keyword (foreign-enum-keyword 'error-code error-code
+                                                 :errorp nil))
                   (condition (gethash keyword *errors* 'zmq-error)))
              (case keyword
                (:eintr (go retry))
@@ -316,7 +317,8 @@ SIZE."
           (progn ,@body)
        (ignore-errors (call-ffi -1 '%msg-close ,var)))))
 
-(defmacro with-msg-init-data ((var data &key (encoding *default-foreign-encoding*))
+(defmacro with-msg-init-data ((var data
+                               &key (encoding *default-foreign-encoding*))
                               &body body)
   "Evaluate BODY in an environment where VAR is bound to a new message filled
 with DATA. If DATA is a string, it is encoded using the character coding
