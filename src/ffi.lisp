@@ -51,49 +51,49 @@
   (io-threads :int))
 
 (defcfun (%msg-close "zmq_msg_close") :int
-  (msg msg))
+  (msg (:pointer (:struct msg))))
 
 (defcfun (%msg-copy "zmq_msg_copy") :int
-  (dest msg)
-  (src msg))
+  (dest (:pointer (:struct msg)))
+  (src (:pointer (:struct msg))))
 
 (defcfun (%msg-data "zmq_msg_data") :pointer
-  (msg msg))
+  (msg (:pointer (:struct msg))))
 
 (defcfun (%msg-init-data "zmq_msg_init_data") :int
-  (msg msg)
+  (msg (:pointer (:struct msg)))
   (data :pointer)
   (size size-t)
   (ffn :pointer)
   (hint :pointer))
 
 (defcfun (%msg-init-size "zmq_msg_init_size") :int
-  (msg msg)
+  (msg (:pointer (:struct msg)))
   (size size-t))
 
 (defcfun (%msg-init "zmq_msg_init") :int
-  (msg msg))
+  (msg (:pointer (:struct msg))))
 
 (defcfun (%msg-move "zmq_msg_move") :int
-  (dest msg)
-  (src msg))
+  (dest (:pointer (:struct msg)))
+  (src (:pointer (:struct msg))))
 
 (defcfun (%msg-size "zmq_msg_size") size-t
-  (msg msg))
+  (msg (:pointer (:struct msg))))
 
 (defcfun (%poll "zmq_poll") :int
-  (items (:pointer pollitem))
+  (items (:pointer (:struct pollitem)))
   (nitems :int)
   (timeout :long))
 
 (defcfun (%recv "zmq_recv") :int
   (socket socket)
-  (msg msg)
+  (msg (:pointer (:struct msg)))
   (flags recv-options))
 
 (defcfun (%send "zmq_send") :int
   (socket socket)
-  (msg msg)
+  (msg (:pointer (:struct msg)))
   (flags send-options))
 
 (defcfun (%setsockopt "zmq_setsockopt") :int

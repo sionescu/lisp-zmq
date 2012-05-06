@@ -261,7 +261,7 @@ byte array."
 
 (defun msg-init ()
   "Create and return a new empty message."
-  (let ((%message (foreign-alloc 'msg)))
+  (let ((%message (foreign-alloc '(:struct msg))))
     (handler-case
         (progn
           (call-ffi -1 '%msg-init %message)
@@ -272,7 +272,7 @@ byte array."
 
 (defun msg-init-size (size)
   "Create and return a new message initialized to a fixed size SIZE."
-  (let ((%message (foreign-alloc 'msg)))
+  (let ((%message (foreign-alloc '(:struct msg))))
     (handler-case
         (progn
           (call-ffi -1 '%msg-init-size %message size)
@@ -284,7 +284,7 @@ byte array."
 (defun msg-init-data (data &key (encoding *default-foreign-encoding*))
   "Create and return a new message initialized and filled with DATA. If DATA
 is a string, it is encoded using the character coding schema ENCODING."
-  (let ((%message (foreign-alloc 'msg)))
+  (let ((%message (foreign-alloc '(:struct msg))))
     (handler-case
         (progn
           (msg-init-fill %message data :encoding encoding)
@@ -301,7 +301,7 @@ is a string, it is encoded using the character coding schema ENCODING."
 
 (defmacro with-msg-init ((var) &body body)
   "Evaluate BODY in an environment where VAR is bound to a new empty message."
-  `(with-foreign-object (,var 'msg)
+  `(with-foreign-object (,var '(:struct msg))
      (call-ffi -1 '%msg-init ,var)
      (unwind-protect
           (progn ,@body)
@@ -310,7 +310,7 @@ is a string, it is encoded using the character coding schema ENCODING."
 (defmacro with-msg-init-size ((var size) &body body)
   "Evaluate BODY in an environment where VAR is bound to a new message of size
 SIZE."
-  `(with-foreign-object (,var 'msg)
+  `(with-foreign-object (,var '(:struct msg))
      (call-ffi -1 '%msg-init-size ,var ,size)
      (unwind-protect
           (progn ,@body)
@@ -321,7 +321,7 @@ SIZE."
   "Evaluate BODY in an environment where VAR is bound to a new message filled
 with DATA. If DATA is a string, it is encoded using the character coding
 schema ENCODING."
-  `(with-foreign-object (,var 'msg)
+  `(with-foreign-object (,var '(:struct msg))
      (msg-init-fill ,var ,data :encoding ,encoding)
      (unwind-protect
           (progn ,@body)
@@ -384,14 +384,14 @@ the call, SOURCE is an empty message."
   descriptor, and other elements are the events to watch
   for, :POLLIN, :POLLOUT or :POLLERR."
   (let ((i 0)
-        (pollitem-size (foreign-type-size 'pollitem)))
-    `(with-foreign-object (,items-var 'pollitem ,(length items))
+        (pollitem-size (foreign-type-size '(:struct pollitem))))
+    `(with-foreign-object (,items-var '(:struct pollitem) ,(length items))
        ,@(mapcar (lambda (item)
                    (prog1
                        `(with-foreign-slots ((socket fd events revents)
                                              (inc-pointer ,items-var
                                                           ,(* i pollitem-size))
-                                             pollitem)
+                                             (:struct pollitem))
                           (destructuring-bind (handle &rest event-list)
                               (list ,@item)
                             (cond
@@ -413,7 +413,7 @@ the call, SOURCE is an empty message."
 (defmacro poll-items-aref (items i)
   "Return a foreign pointer on the poll item of indice I in the foreign array
 ITEMS."
-  `(mem-aref ,items 'pollitem ,i))
+  `(mem-aptr ,items '(:struct pollitem) ,i))
 
 (defmacro do-poll-items ((var items nb-items) &body body)
   "For each poll item in ITEMS, evaluate BODY in an environment where VAR is
@@ -427,16 +427,16 @@ ITEMS."
 (defun poll-item-events-signaled-p (poll-item &rest events)
   "Return T if POLL-ITEM indicates that one or more of the listed EVENTS types was
    detected for the underlying socket or file descriptor or NIL if no event occurred."
-  (/= (logand (foreign-slot-value poll-item 'pollitem 'revents)
+  (/= (logand (foreign-slot-value poll-item '(:struct pollitem) 'revents)
               (foreign-bitfield-value 'event-types events)) 0))
 
 (defun poll-item-socket (poll-item)
   "Return a foreign pointer to the zeromq socket of the poll item POLL-ITEM."
-  (foreign-slot-value poll-item 'pollitem 'socket))
+  (foreign-slot-value poll-item '(:struct pollitem) 'socket))
 
 (defun poll-item-fd (poll-item)
   "Return the file descriptor of the poll item POLL-ITEM."
-  (foreign-slot-value poll-item 'pollitem 'fd))
+  (foreign-slot-value poll-item '(:struct pollitem) 'fd))
 
 (defun poll (items nb-items timeout)
   "Poll ITEMS with a timeout of TIMEOUT microseconds, -1 meaning no time
