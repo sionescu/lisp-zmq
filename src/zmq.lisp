@@ -121,7 +121,7 @@ be protected against concurrent access."
 (defmacro with-socket-locked ((socket) &body body)
   "Evaluate BODY in an environment where SOCKET is protected against
   concurrent access."
-  `(if (socket-lock socket)
+  `(if (socket-lock ,socket)
        (bordeaux-threads:with-recursive-lock-held ((socket-lock ,socket))
          ,@body)
        (progn
