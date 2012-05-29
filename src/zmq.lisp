@@ -237,7 +237,10 @@ SOCKET."
 (defun device (type frontend backend)
   "Connect a frontend socket to a backend socket. This function always returns
 -1."
-  (call-ffi 0 '%device (foreign-enum-value 'device-type type) frontend backend))
+  (with-socket-locked (frontend)
+    (with-socket-locked (backend)
+      (call-ffi 0 '%device (foreign-enum-value 'device-type type)
+                (socket-%socket frontend) (socket-%socket backend)))))
 
 (defun msg-init-fill (message data &key (encoding *default-foreign-encoding*))
   "Initialize, fill and return a message. If DATA is a string, convert it to a
