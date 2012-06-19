@@ -10,6 +10,9 @@
 
 (constant (max-vsm-size "ZMQ_MAX_VSM_SIZE"))
 
+(constant (+eintr+ "EINTR"))
+(constant (+noblock+ "ZMQ_NOBLOCK"))
+
 (constantenum error-code
               ;; Stqndard error codes
               ((:einval "EINVAL"))

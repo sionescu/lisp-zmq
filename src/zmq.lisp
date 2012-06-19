@@ -52,6 +52,7 @@
 (define-error eterm-error :eterm)
 (define-error emthread-error :emthread)
 
+(declaim (inline call-ffi))
 (defun call-ffi (invalid-value function &rest args)
   "Call a low-level function and check its return value. If the return value
 is equal to INVALID-VALUE, a suitable error is signaled. When the error code
@@ -60,7 +61,7 @@ called until it succeeds. In any case, the return value of the low-level
 function is returned."
   (tagbody retry
      (let ((value (apply function args)))
-       (if (eq value invalid-value)
+       (if (eql value invalid-value)
            (let* ((error-code (%errno))
                   (description (%strerror error-code))
                   (keyword (foreign-enum-keyword 'error-code error-code
@@ -374,11 +375,46 @@ the call, SOURCE is an empty message."
     (call-ffi -1 '%send (socket-%socket socket) message
               (foreign-bitfield-value 'send-options flags))))
 
-(defun recv (socket message &optional flags)
+;; (defun recv (socket message &optional flags)
+;;   "Receive a message from SOCKET and store it in MESSAGE."
+;;   (with-socket-locked (socket)
+;;     (call-ffi -1 '%recv (socket-%socket socket) message
+;;               (foreign-bitfield-value 'recv-options flags))))
+
+(defun signal-zmq-error (error-code)
+  (let* ((description (%strerror error-code))
+         (keyword (foreign-enum-keyword 'error-code error-code
+                                        :errorp nil))
+         (condition (gethash keyword *errors* 'zmq-error)))
+    (error condition :code (or keyword error-code)
+                     :description description)))
+
+(declaim (inline recv))
+(defun recv (socket message &optional (flags 0))
   "Receive a message from SOCKET and store it in MESSAGE."
-  (with-socket-locked (socket)
-    (call-ffi -1 '%recv (socket-%socket socket) message
-              (foreign-bitfield-value 'recv-options flags))))
+  (declare (optimize (speed 3) (safety 1) (debug 2)))
+  (tagbody :retry
+     (let ((value (%recv (socket-%socket socket) message flags)))
+       (if (= -1 value)
+           (let ((error-code (%errno)))
+             (if (= +eintr+ error-code)
+                 (go :retry)
+                 (signal-zmq-error error-code)))
+           (return-from recv value)))))
+
+(declaim (inline poll))
+(defun poll (items nb-items timeout)
+  "Poll ITEMS with a timeout of TIMEOUT microseconds, -1 meaning no time
+  limit. Return the number of items with signaled events."
+  (declare (optimize (speed 3) (safety 1) (debug 2)))
+  (tagbody :retry
+     (let ((value (%poll items nb-items timeout)))
+       (if (= -1 value)
+           (let ((error-code (%errno)))
+             (if (= +eintr+ error-code)
+                 (go :retry)
+                 (signal-zmq-error error-code)))
+           (return-from poll value)))))
 
 (defmacro with-poll-items ((items-var size-var) items &body body)
   "Evaluate BODY in an environment where ITEMS-VAR is bound to a foreign array
@@ -443,10 +479,10 @@ ITEMS."
   "Return the file descriptor of the poll item POLL-ITEM."
   (foreign-slot-value poll-item '(:struct pollitem) 'fd))
 
-(defun poll (items nb-items timeout)
-  "Poll ITEMS with a timeout of TIMEOUT microseconds, -1 meaning no time
-  limit. Return the number of items with signaled events."
-  (call-ffi -1 '%poll items nb-items timeout))
+;; (defun poll (items nb-items timeout)
+;;   "Poll ITEMS with a timeout of TIMEOUT microseconds, -1 meaning no time
+;;   limit. Return the number of items with signaled events."
+;;   (call-ffi -1 '%poll items nb-items timeout))
 
 (defun stopwatch-start ()
   "Start a timer, and return a handle."

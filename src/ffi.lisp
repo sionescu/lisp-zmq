@@ -81,15 +81,25 @@
 (defcfun (%msg-size "zmq_msg_size") size-t
   (msg (:pointer (:struct msg))))
 
+;; (defcfun (%poll "zmq_poll") :int
+;;   (items (:pointer (:struct pollitem)))
+;;   (nitems :int)
+;;   (timeout :long))
+
 (defcfun (%poll "zmq_poll") :int
-  (items (:pointer (:struct pollitem)))
-  (nitems :int)
+  (items   :pointer)
+  (nitems  :int)
   (timeout :long))
 
+;; (defcfun (%recv "zmq_recv") :int
+;;   (socket socket)
+;;   (msg    (:pointer (:struct msg)))
+;;   (flags  recv-options))
+
 (defcfun (%recv "zmq_recv") :int
-  (socket socket)
-  (msg (:pointer (:struct msg)))
-  (flags recv-options))
+  (socket :pointer)
+  (msg    :pointer)
+  (flags  :unsigned-int))
 
 (defcfun (%send "zmq_send") :int
   (socket socket)

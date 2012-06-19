@@ -33,5 +33,7 @@
            :eagain-error :emfile-error :enotsup-error :eprotonosupport-error
            :enobufs-error :enetdown-error :eaddrinuse-error :eaddrnotavail-error
            :econnrefused-error :einprogress-error :enotsock-error
-           :efsm-error :enocompatproto-error :eterm-error :emthread-error)
+           :efsm-error :enocompatproto-error :eterm-error :emthread-error
+
+           #:+noblock+)
   (:shadow :close :sleep))
