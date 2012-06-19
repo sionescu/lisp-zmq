@@ -5,6 +5,7 @@
 (in-package :zmq)
 
 (ctype size-t "size_t")
+(ctype fd-t "int")
 
 #+win32 (ctype win32-socket "SOCKET")
 

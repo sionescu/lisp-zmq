@@ -106,6 +106,9 @@
   (context context)
   (type socket-type))
 
+(defcfun (socket-fd "zmq_socket_getfd") fd-t
+  (socket socket))
+
 (defcfun (%strerror "zmq_strerror") :string
   (errnum :int))
 

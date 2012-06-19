@@ -7,7 +7,7 @@
 
            :socket-%socket :socket-lock :with-socket-locked
 
-           :socket :close :with-socket :with-sockets
+           :socket :socket-fd :close :with-socket :with-sockets
            :bind :connect
 
            :getsockopt :setsockopt
